@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Discovery Questionnaire — IDS Website Redesign</title>
+<meta name="color-scheme" content="light dark" />
+<style>
+  /* ---------- Tokens ---------- */
+  :root {
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --text: #1c2531;
+    --hint: #4f5b6b;
+    --brand: #426495;          /* 6.02:1 on white: safe for text */
+    --brand-fill: #7aa2ce;     /* fills only: 2.66:1 on white, never text */
+    --brand-soft: #e3ebf5;
+    --rule: #d3dae4;
+    --field-border: #66748a;   /* 3:1+ against surface for non-text contrast */
+    --focus: #1f4f9a;
+    --warm: #fdecc8;
+    --warm-text: #5f3a00;
+    --btn-bg: #426495;
+    --btn-text: #ffffff;
+    --error: #a3201b;
+    --ok: #1d6b45;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --radius: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161d; --surface: #18202a; --text: #e9eef4; --hint: #aab6c5;
+      --brand: #9dbbe0; --brand-soft: #22324a; --rule: #2e3a4a; --field-border: #8d9bb0;
+      --focus: #9dbbe0; --warm: #4a3710; --warm-text: #fbe3ae;
+      --btn-bg: #7aa2ce; --btn-text: #0c1520; --error: #ff9b94; --ok: #74d6a4;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161d; --surface: #18202a; --text: #e9eef4; --hint: #aab6c5;
+    --brand: #9dbbe0; --brand-soft: #22324a; --rule: #2e3a4a; --field-border: #8d9bb0;
+    --focus: #9dbbe0; --warm: #4a3710; --warm-text: #fbe3ae;
+    --btn-bg: #7aa2ce; --btn-text: #0c1520; --error: #ff9b94; --ok: #74d6a4;
+  }
+
+  /* ---------- Base ---------- */
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 1.0625rem/1.6 var(--sans);
+    -webkit-text-size-adjust: 100%;
+  }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 3px; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .skip { position: absolute; left: 1rem; top: -4rem; background: var(--btn-bg); color: var(--btn-text); padding: .75rem 1rem; border-radius: 6px; z-index: 200; }
+  .skip:focus { top: 1rem; }
+  [hidden] { display: none !important; }
+
+  /* ---------- Masthead ---------- */
+  .masthead { background: var(--brand); color: #fff; padding: 2.5rem 1.25rem 2rem; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .masthead { background: #1d3050; } }
+  :root[data-theme="dark"] .masthead { background: #1d3050; }
+  :root[data-theme="dark"] .masthead, :root:not([data-theme="light"]) .masthead { color: #fff; }
+  .masthead__inner { max-width: 48rem; margin: 0 auto; }
+  .kicker { margin: 0 0 .5rem; font-weight: 600; color: #cfdcef; }
+  .masthead h1 { font: 600 clamp(2rem, 5vw, 2.85rem)/1.1 var(--serif); margin: 0 0 1rem; letter-spacing: -.01em; color: #fff; }
+  .facts { display: flex; flex-wrap: wrap; gap: .5rem; padding: 0; margin: 0; list-style: none; }
+  .facts li { background: rgba(255,255,255,.16); border-radius: 999px; padding: .25rem .85rem; font-size: .95rem; }
+
+  /* ---------- Sticky navigation ---------- */
+  .sticky { position: sticky; top: 0; z-index: 100; }
+
+  .meterbar { background: #2d476b; padding: .7rem 1.25rem; }
+  .meterbar__inner { max-width: 48rem; margin: 0 auto; display: flex; align-items: center; gap: 1rem; }
+  .meterbar__track { flex: 1; height: 6px; background: rgba(255,255,255,.18); border-radius: 999px; overflow: hidden; }
+  .meterbar__fill { height: 100%; width: 0%; background: var(--brand-fill); border-radius: 999px; transition: width .35s ease; }
+  .meterbar__label { font-size: .8rem; font-weight: 600; color: #cfdcef; white-space: nowrap; }
+
+  .tabs { background: var(--surface); border-bottom: 1px solid var(--rule); box-shadow: 0 2px 10px rgba(28,37,49,.07); }
+  .tabs__inner { max-width: 48rem; margin: 0 auto; display: flex; gap: .25rem; padding: .5rem 1.25rem; overflow-x: auto; }
+  .tabs__inner::-webkit-scrollbar { height: 4px; }
+  .tabs__inner::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 4px; }
+
+  .tab {
+    display: inline-flex; align-items: center; gap: .45rem; flex: none;
+    background: transparent; border: 2px solid transparent; border-radius: 999px;
+    padding: .4rem .8rem; font: 600 .875rem var(--sans); color: var(--text);
+    cursor: pointer; white-space: nowrap;
+  }
+  .tab:hover { background: var(--brand-soft); }
+  .tab[aria-selected="true"] { background: var(--brand); border-color: var(--brand); color: #fff; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tab[aria-selected="true"] { color: #0c1520; } }
+  :root[data-theme="dark"] .tab[aria-selected="true"] { color: #0c1520; }
+  .tab__n {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.3rem; height: 1.3rem; border-radius: 999px;
+    background: var(--brand-soft); color: var(--brand); font-size: .7rem; font-weight: 700; flex: none;
+  }
+  .tab[aria-selected="true"] .tab__n { background: rgba(255,255,255,.25); color: inherit; }
+  .tab__dot { width: 6px; height: 6px; border-radius: 999px; background: var(--brand-fill); opacity: 0; flex: none; }
+  .tab.started .tab__dot { opacity: 1; }
+  .tab[aria-selected="true"] .tab__dot { background: #fff; }
+
+  .filterbar { background: var(--surface); border-bottom: 1px solid var(--rule); }
+  .filterbar__inner {
+    max-width: 48rem; margin: 0 auto; padding: .5rem 1.25rem;
+    display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; font-size: .9rem;
+  }
+  .filterbar input { width: 1.15rem; height: 1.15rem; accent-color: var(--brand); flex: none; }
+  .filterbar label { cursor: pointer; font-weight: 600; }
+  .filterbar .showing { color: var(--hint); }
+
+  /* ---------- Main ---------- */
+  .page { max-width: 48rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+  .intro, .resume, .card, .savebar, .send {
+    background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
+  }
+  .intro { padding: 1.5rem; margin-bottom: 1.5rem; }
+  .intro h2 { font: 600 1.4rem/1.2 var(--serif); margin: 0 0 .6rem; }
+  .intro p { margin: 0 0 .9rem; }
+  .intro p:last-child { margin-bottom: 0; }
+
+  .resume {
+    display: flex; gap: .9rem; align-items: flex-start;
+    background: var(--warm); border-color: #e8cf9a; color: var(--warm-text);
+    padding: 1rem 1.15rem; margin-bottom: 1.5rem;
+  }
+  .resume__text { font-weight: 600; margin: 0 0 .35rem; }
+  .resume__actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .resume__link {
+    background: none; border: 0; padding: 0; font: 600 .875rem var(--sans);
+    color: var(--warm-text); text-decoration: underline; cursor: pointer;
+  }
+
+  .card { margin-bottom: 1.5rem; overflow: hidden; }
+  .card > header { border-top: 4px solid var(--brand); padding: 1.1rem 1.5rem; background: var(--brand-soft); }
+  .card .label { margin: 0; color: var(--brand); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
+  .card h2 { font: 600 1.6rem/1.2 var(--serif); margin: .15rem 0 .4rem; }
+  .card .lead { margin: 0; color: var(--hint); font-size: .975rem; }
+  .card__body { padding: 0 1.5rem; }
+
+  /* ---------- Questions ---------- */
+  .q { display: grid; grid-template-columns: 2.25rem 1fr; gap: 0 .25rem; padding: 1.5rem 0; border-top: 1px solid var(--rule); }
+  .q:first-child { border-top: 0; }
+  .q .n { font: 600 1.15rem/1.5 var(--serif); color: var(--brand); }
+  .q .body { min-width: 0; }
+  .q label.qt, .q legend.qt { display: block; font-weight: 600; font-size: 1.0625rem; line-height: 1.45; margin: 0 0 .35rem; padding: 0; }
+  .q fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+  .badge {
+    display: inline-block; margin-left: .5rem; padding: 0 .55rem;
+    background: var(--warm); color: var(--warm-text); border-radius: 999px;
+    font-size: .8rem; font-weight: 600; line-height: 1.6; vertical-align: .08em; white-space: nowrap;
+  }
+  .hint { margin: 0 0 .75rem; color: var(--hint); font-size: .95rem; }
+
+  textarea, input[type="text"], input[type="email"] {
+    width: 100%; font: inherit; color: var(--text); background: var(--surface);
+    border: 2px solid var(--field-border); border-radius: 6px; padding: .7rem .8rem;
+  }
+  textarea { min-height: 4.5rem; resize: vertical; overflow: hidden; line-height: 1.5; }
+  select {
+    font: inherit; color: var(--text); background: var(--surface);
+    border: 2px solid var(--field-border); border-radius: 6px; padding: .55rem .6rem; min-height: 2.75rem;
+  }
+  select:focus, textarea:focus, input:focus { outline: 3px solid var(--focus); outline-offset: 2px; border-color: var(--focus); }
+  .fields { display: grid; gap: 1rem; }
+  .field label { display: block; font-weight: 600; margin-bottom: .25rem; font-size: 1rem; }
+  .field .req { color: var(--brand); font-weight: 700; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; }
+  .rankrow { display: grid; grid-template-columns: 1fr 9.5rem; gap: .75rem; align-items: center; }
+  .rankrow label { margin: 0; font-weight: 400; }
+  .rankmsg { margin: .5rem 0 0; color: var(--error); font-weight: 600; min-height: 1.4em; font-size: .95rem; }
+  .invalid, .invalid:focus { border-color: var(--error); }
+  .fielderror { margin: .6rem 0 0; color: var(--error); font-weight: 600; font-size: .95rem; }
+
+  /* ---------- Save bar ---------- */
+  .savebar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: .75rem; flex-wrap: wrap; padding: .85rem 1.15rem; margin-bottom: 1.25rem;
+  }
+  .savebar__status { font-size: .875rem; color: var(--hint); }
+  .savebar__status.ok { color: var(--ok); font-weight: 600; }
+  .savebar__status.warn { color: var(--error); font-weight: 600; }
+  .savebar__actions { display: flex; gap: .4rem; flex-wrap: wrap; }
+  .btn-ghost {
+    font: 600 .8125rem var(--sans); background: transparent; color: var(--text);
+    border: 2px solid var(--rule); border-radius: 999px; padding: .4rem .9rem; cursor: pointer;
+  }
+  .btn-ghost:hover { border-color: var(--brand); background: var(--brand-soft); }
+  .btn-ghost.danger:hover { border-color: var(--error); color: var(--error); background: transparent; }
+
+  /* ---------- Step nav ---------- */
+  .stepnav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 2rem; }
+  .stepnav__status { font-size: .875rem; font-weight: 600; color: var(--hint); }
+  .btn-step {
+    font: 600 1rem var(--sans); min-height: 2.9rem; padding: .6rem 1.4rem;
+    border: 2px solid var(--rule); border-radius: 999px; background: var(--surface); color: var(--text); cursor: pointer;
+  }
+  .btn-step:hover:not(:disabled) { border-color: var(--brand); }
+  .btn-step.primary { background: var(--btn-bg); border-color: var(--btn-bg); color: var(--btn-text); }
+  .btn-step.primary:hover { filter: brightness(1.08); }
+  .btn-step:disabled { opacity: .4; cursor: default; }
+
+  /* ---------- Send ---------- */
+  .send { border-top: 4px solid var(--brand); padding: 1.75rem 1.5rem; margin-bottom: 1.5rem; }
+  .send h2 { font: 600 1.5rem/1.2 var(--serif); margin: 0 0 .5rem; }
+  .send p { margin: 0 0 1.25rem; color: var(--hint); }
+  button.primary {
+    font: 600 1rem var(--sans); min-height: 3rem; padding: .75rem 1.75rem; border: 0; border-radius: 999px;
+    background: var(--btn-bg); color: var(--btn-text); cursor: pointer;
+  }
+  button.primary:hover:not(:disabled) { filter: brightness(1.08); }
+  button.primary:disabled { opacity: .6; cursor: progress; }
+  .status { margin: .75rem 0 0; color: var(--hint); min-height: 1.6em; }
+  .status.error { color: var(--error); font-weight: 600; }
+
+  #thanks { padding: 3rem 1.5rem; text-align: center; }
+  #thanks h2 { font: 600 2rem/1.15 var(--serif); margin: 0 0 1rem; }
+  #thanks h2:focus { outline: none; }
+  #thanks p { max-width: 32rem; margin: 0 auto; color: var(--hint); }
+
+  footer { max-width: 48rem; margin: 0 auto; padding: 0 1.25rem 3rem; color: var(--hint); font-size: .9rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { transition: none !important; animation: none !important; }
+  }
+  @media (max-width: 34em) {
+    .q { grid-template-columns: 1fr; }
+    .q .n { font-size: .95rem; color: var(--hint); }
+    .rankrow { grid-template-columns: 1fr; }
+    .card__body { padding: 0 1.1rem; }
+    .card > header { padding: 1rem 1.1rem; }
+  }
+  @media print {
+    .sticky, .savebar, .stepnav, .resume, button { display: none !important; }
+    .card[hidden], .intro[hidden] { display: block !important; }
+    .q[hidden] { display: grid !important; }
+    .card { break-inside: avoid; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#form">Skip to the questions</a>
+<noscript><p style="padding:1rem;background:#fdecc8;color:#5f3a00;margin:0">This questionnaire needs JavaScript to save your answers and to send them. Please turn JavaScript on.</p></noscript>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <p class="kicker" id="kicker"></p>
+    <h1 id="title"></h1>
+    <ul class="facts" id="facts"></ul>
+  </div>
+</header>
+
+<div class="sticky">
+  <div class="meterbar" aria-label="Progress">
+    <div class="meterbar__inner">
+      <div class="meterbar__track"><div class="meterbar__fill" id="meterFill"></div></div>
+      <div class="meterbar__label" id="meterLabel"></div>
+    </div>
+  </div>
+  <nav class="tabs" aria-label="Sections">
+    <div class="tabs__inner" id="tabs" role="tablist"></div>
+  </nav>
+  <div class="filterbar">
+    <div class="filterbar__inner">
+      <input type="checkbox" id="priorityOnly" />
+      <label for="priorityOnly">Show only the priority questions</label>
+      <span class="showing" id="showing"></span>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+  <div id="form">
+
+    <div class="resume" id="resumeBanner" hidden>
+      <div>
+        <p class="resume__text" id="resumeText"></p>
+        <div class="resume__actions">
+          <button type="button" class="resume__link" id="resumeFresh">Not you? Start fresh</button>
+          <button type="button" class="resume__link" id="resumeDismiss">Dismiss</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="intro" id="intro"></div>
+
+    <div id="sections"></div>
+
+    <div class="savebar">
+      <div class="savebar__status" id="saveStatus" role="status" aria-live="polite"></div>
+      <div class="savebar__actions">
+        <button type="button" class="btn-ghost" id="btnSaveCopy">Save a copy</button>
+        <button type="button" class="btn-ghost" id="btnRestore">Restore</button>
+        <button type="button" class="btn-ghost danger" id="btnStartOver">Start over</button>
+        <input type="file" id="restoreFile" accept="application/json,.json" hidden />
+      </div>
+    </div>
+
+    <div class="stepnav" id="stepnav">
+      <button type="button" class="btn-step" data-nav="prev">&larr; Back</button>
+      <div class="stepnav__status" id="stepStatus"></div>
+      <button type="button" class="btn-step primary" data-nav="next">Next &rarr;</button>
+    </div>
+
+    <section class="send" id="sendCard" aria-labelledby="send-h" hidden>
+      <h2 id="send-h">That&rsquo;s everything</h2>
+      <p>Send this back whenever you&rsquo;re ready. If you&rsquo;d rather finish later, close the page &mdash; your answers will be here when you return.</p>
+      <button type="button" class="primary" id="sendBtn">Send my answers</button>
+      <p class="status" id="sendStatus" role="status"></p>
+    </section>
+  </div>
+
+  <section id="thanks" class="card" hidden aria-labelledby="thanks-h">
+    <h2 id="thanks-h" tabindex="-1">Thank you<span id="thanksName"></span></h2>
+    <p>Your answers are in. We&rsquo;ll read them and come back with a plan, and with any follow-up questions your answers raise. There&rsquo;s nothing else you need to do.</p>
+  </section>
+</div>
+
+<footer id="footer"></footer>
+
+<script>
+/* ============================================================
+   CONFIG — edit these first
+   ============================================================ */
+const CONFIG = {
+  kicker: 'A few questions before we start',
+  title: 'IDS Website Redesign',
+  phase: 'Phase 1: Discovery',
+
+  // Formspree form that receives completed questionnaires.
+  // TODO: replace with the IDS-specific Formspree form id.
+  // This currently points at the shared form used by the other two
+  // questionnaires, so responses will land in that same inbox.
+  endpoint: 'https://formspree.io/f/xbdakjjj',
+
+  storageKey: 'ids-discovery-questionnaire:v1',
+  footer: 'IDS Website Redesign · Discovery questionnaire'
+};
+
+/* ============================================================
+   CONTENT — sections and questions.
+   star: true marks a priority question (blocks the next phase).
+   ============================================================ */
+const WORDS = ['One','Two','Three','Four','Five','Six','Seven'];
+const AUDIENCES_RANK = ['Facility administrators','Directors of nursing','Home health','Hospice','Outpatient clinics','Partners','Current employees','Recruits'];
+
+const SECTIONS = [
+  { title: 'Goals and brand', tab: 'Goals & brand', lead: 'What the site should do first, and how IDS should come across.', questions: [
+    { star: true, q: 'For each audience, what is the one thing a first-time visitor should do within 30 seconds?',
+      fields: [
+        { id: 'a1-fac', label: 'Facility administrators and directors of nursing', area: true },
+        { id: 'a1-home', label: 'Home health, hospice and outpatient clinics', area: true },
+        { id: 'a1-partner', label: 'Partners', area: true },
+        { id: 'a1-emp', label: 'Current employees', area: true },
+        { id: 'a1-rec', label: 'Recruits', area: true }
+      ] },
+    { star: true, q: 'Will the name decision (IDS only, or a family of company names) be made before the design phase starts?', hint: 'If not, which name should the first designs use?' },
+    { q: 'Which name do facilities recognize and trust today: IDS, First Choice, Core, or Community Services?' },
+    { q: 'When customers or prospects mention Core radiology or Core lab, what do they say?' },
+    { star: true, q: 'What can IDS prove it does differently from other providers?', hint: 'For each point, name the figure that backs it (for example turnaround time or accuracy), who owns that number, and whether any of it is promised in contracts.' }
+  ]},
+  { title: 'Customers and decisions', tab: 'Customers', lead: 'Who uses the site, and how they choose a provider.', questions: [
+    { star: true, q: 'Rank these audiences by business value to IDS.', hint: 'Choose 1 for the most valuable and 8 for the least. Each number should be used once.', rank: AUDIENCES_RANK },
+    { star: true, q: 'At a typical facility, who is involved in choosing a diagnostic provider?', hint: 'Answer each part separately.',
+      fields: [
+        { id: 'b7-decide', label: 'Who decides to switch providers?', area: true },
+        { id: 'b7-influence', label: 'Who influences the decision?', area: true },
+        { id: 'b7-feel', label: 'Who feels the problem day to day?', area: true }
+      ] },
+    { q: 'Roughly how many facilities does IDS serve, of which types, and in which regions?' },
+    { q: 'Think of the last two customers IDS won and the last two it lost. What reasons did each give?' },
+    { q: 'What are the top three reasons each audience contacts IDS today?' },
+    { q: 'Do current customers need the website at all, or do they use a portal or the phone?', hint: 'If they use the site, what one task would they want to finish there?' },
+    { q: 'How do prospects find IDS today, and what would they type into a search box?' },
+    { q: 'For each main audience, what are the age range, the devices they use, where they use the site, and the language they prefer?', hint: 'Places might be a nurse’s station desktop, a phone in a hallway, or a locked-down work browser.' },
+    { q: 'Do you have existing customer feedback we can read?', hint: 'Complaints, survey results or support tickets.' }
+  ]},
+  { title: 'Services and the location finder', tab: 'Services', lead: 'What a facility needs to know before it requests service.', questions: [
+    { star: true, q: 'Before requesting service, what must a facility know?', hint: 'Answer from your own experience first.' },
+    { star: true, q: 'Is the combined lab and radiology offer the headline benefit, or are individual services the headline?' },
+    { q: 'Roughly what share of customers use both lab and radiology?' },
+    { q: 'When an address is outside your service area, what should the visitor see?', hint: 'A waitlist, a call-us message, a referral, or something else.' },
+    { q: 'Which services are urgent or after-hours? For those, do customers prefer to phone or to submit a form?' },
+    { q: 'What are the 10 questions your sales or intake team answers most often?', hint: 'Paste them as people ask them, or send us the emails and RFP questions they come from.' }
+  ]},
+  { title: 'Employees and recruits', tab: 'People', lead: 'What staff and job seekers need from the site.', questions: [
+    { star: true, q: 'What do employees do on a typical day that the website should support?', hint: 'If you aren’t sure, name two employees we can ask.' },
+    { q: 'Which roles are hardest to hire?' },
+    { q: 'Do recruits need a careers section on this site, or do you use a job board or applicant tracking system?' }
+  ]},
+  { title: 'Content, accessibility and measurement', tab: 'Content & measurement', lead: 'Who writes and approves, who uses assistive technology, and what we measure.', questions: [
+    { q: 'Do any of your customers or staff use assistive technology such as screen readers, magnification or voice control?', hint: 'Could two of them join a short test call?' },
+    { star: true, q: 'Who writes the copy, who approves it, and how long does an approval usually take?', hint: 'Name one person who signs off on design and content.' },
+    { q: 'Can we get the current site’s analytics, 12 months if possible?', hint: 'Who runs the LinkedIn and marketing campaigns, and do you already tag campaign links?' },
+    { q: 'How many leads (calls, forms, emails) does IDS get in a month today?', hint: 'What number would count as success three to six months after launch?' },
+    { q: 'Which three or four competitors do you consider the closest, and who do customers compare IDS against?' }
+  ]}
+];
+
+/* ============================================================
+   Setup
+   ============================================================ */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let counter = 0;
+SECTIONS.forEach((s, si) => {
+  s.id = 's' + (si + 1);
+  s.questions.forEach(q => { q.n = ++counter; q.id = 'q' + q.n; });
+});
+const TOTAL = counter;
+const STARS = SECTIONS.flatMap(s => s.questions).filter(q => q.star).length;
+
+// Every answer, keyed by field id. The whole draft is just this object.
+let answers = {};
+
+/* ============================================================
+   Render
+   ============================================================ */
+function renderHeader() {
+  $('#kicker').textContent = CONFIG.kicker;
+  $('#title').textContent = CONFIG.title;
+  $('#facts').innerHTML =
+    `<li>${esc(CONFIG.phase)}</li><li>${TOTAL} questions</li><li>${STARS} priority</li><li>Answers save as you type</li>`;
+  $('#footer').textContent = CONFIG.footer;
+}
+
+function renderIntro() {
+  $('#intro').innerHTML = `
+    <h2>Before you start</h2>
+    <p>Thank you for taking the time. There is no wrong answer here, and &ldquo;I&rsquo;m not sure yet&rdquo; is a useful reply: it tells us where you&rsquo;d like help deciding.</p>
+    <p>Type straight into the boxes; they grow as you write. Leave anything blank that doesn&rsquo;t apply, and forward a question to a colleague if they know better. Questions marked <span class="badge" style="margin-left:0">Priority</span> block the next phase, so please answer those first. Questions about IT systems, legal sign-off, domains and brand assets are in a separate checklist for the people who own them.</p>
+    <p id="saveNote"></p>`;
+}
+
+function questionHTML(q) {
+  const badge = q.star ? '<span class="badge">Priority</span>' : '';
+  const hintId = q.hint ? `${q.id}-h` : '';
+  const hint = q.hint ? `<p class="hint" id="${hintId}">${esc(q.hint)}</p>` : '';
+  const open = `<div class="q" data-q="${q.id}"><div class="n" aria-hidden="true">${q.n}</div>`;
+  const legend = `<legend class="qt"><span class="sr-only">Question ${q.n}. </span>${esc(q.q)}${badge}</legend>`;
+  const desc = hintId ? ` aria-describedby="${hintId}"` : '';
+
+  if (q.rank) {
+    const opts = ['<option value="">Choose a rank</option>']
+      .concat(q.rank.map((_, i) => `<option value="${i + 1}">${i + 1}</option>`)).join('');
+    return `${open}<fieldset class="body"${desc}>${legend}${hint}
+      <div class="fields">${q.rank.map((label, i) => `
+        <div class="field rankrow"><label for="${q.id}-r${i}">${esc(label)}</label>
+        <select id="${q.id}-r${i}" data-id="${q.id}-r${i}" data-rank="${q.id}">${opts}</select></div>`).join('')}
+      </div>
+      <p class="rankmsg" id="${q.id}-msg" role="status"></p>
+    </fieldset></div>`;
+  }
+  if (q.fields) {
+    return `${open}<fieldset class="body"${desc}>${legend}${hint}
+      <div class="fields">${q.fields.map(f => `
+        <div class="field"><label for="${f.id}">${esc(f.label)}</label>
+        ${f.area ? `<textarea id="${f.id}" data-id="${f.id}" rows="2"></textarea>`
+                 : `<input type="text" id="${f.id}" data-id="${f.id}">`}</div>`).join('')}
+      </div></fieldset></div>`;
+  }
+  return `${open}<div class="body">
+      <label class="qt" for="${q.id}"><span class="sr-only">Question ${q.n}. </span>${esc(q.q)}${badge}</label>
+      ${hint}
+      <textarea id="${q.id}" data-id="${q.id}"${desc} rows="3"></textarea>
+    </div></div>`;
+}
+
+function renderSections() {
+  // "About you" is the first panel, so we always know whose answers these are.
+  const about = `
+    <section class="card" id="s0" data-tab="About you" data-tab-num="★" aria-labelledby="s0-h">
+      <header>
+        <p class="label">Start here</p>
+        <h2 id="s0-h">About you</h2>
+        <p class="lead">So we know whose answers these are, and who to come back to with follow-up questions.</p>
+      </header>
+      <div class="card__body">
+        <div class="q"><div class="n" aria-hidden="true"></div><div class="body">
+          <div class="fields">
+            <div class="field">
+              <label for="who-name">Your name <span class="req">required</span></label>
+              <input type="text" id="who-name" data-id="who-name" autocomplete="name">
+            </div>
+            <div class="field">
+              <label for="who-role">Your role at IDS</label>
+              <input type="text" id="who-role" data-id="who-role" autocomplete="organization-title">
+            </div>
+            <div class="field">
+              <label for="who-email">Best email for follow-up questions</label>
+              <input type="email" id="who-email" data-id="who-email" autocomplete="email">
+            </div>
+          </div>
+          <p class="fielderror" id="nameError" hidden>Please add your name before sending &mdash; otherwise we won&rsquo;t know whose answers these are.</p>
+        </div></div>
+      </div>
+    </section>`;
+
+  $('#sections').innerHTML = about + SECTIONS.map((s, i) => `
+    <section class="card" id="${s.id}" data-tab="${esc(s.tab)}" data-tab-num="${i + 1}" aria-labelledby="${s.id}-h">
+      <header>
+        <p class="label">Section ${WORDS[i]}</p>
+        <h2 id="${s.id}-h">${esc(s.title)}</h2>
+        <p class="lead">${esc(s.lead)}</p>
+      </header>
+      <div class="card__body">${s.questions.map(questionHTML).join('')}</div>
+    </section>`).join('');
+}
+
+renderHeader();
+renderIntro();
+renderSections();
+
+/* ============================================================
+   Tabs — one section at a time
+   ============================================================ */
+const panels    = $$('#sections .card');
+const tabStrip  = $('#tabs');
+const stepnav   = $('#stepnav');
+const stepStatus = $('#stepStatus');
+const sendCard  = $('#sendCard');
+const intro     = $('#intro');
+const tabs      = [];
+let current = 0;
+
+panels.forEach((panel, i) => {
+  panel.setAttribute('role', 'tabpanel');
+  panel.setAttribute('aria-labelledby', 'tab-' + panel.id);
+
+  const tab = document.createElement('button');
+  tab.type = 'button';
+  tab.className = 'tab';
+  tab.id = 'tab-' + panel.id;
+  tab.setAttribute('role', 'tab');
+  tab.setAttribute('aria-controls', panel.id);
+  tab.innerHTML = `<span class="tab__n">${panel.dataset.tabNum}</span>` +
+                  `<span>${esc(panel.dataset.tab)}</span>` +
+                  `<span class="tab__dot" aria-hidden="true"></span>`;
+  tab.addEventListener('click', () => showPanel(i));
+  tab.addEventListener('keydown', e => {
+    const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    if (!step) return;
+    e.preventDefault();
+    const next = (i + step + panels.length) % panels.length;
+    showPanel(next);
+    tabs[next].focus();
+  });
+  tabStrip.appendChild(tab);
+  tabs.push(tab);
+});
+
+function showPanel(i, opts) {
+  const scroll = !opts || opts.scroll !== false;
+  current = i;
+  panels.forEach((p, n) => {
+    p.hidden = n !== i;
+    tabs[n].setAttribute('aria-selected', n === i);
+    tabs[n].tabIndex = n === i ? 0 : -1;
+  });
+  intro.hidden = i !== 0;                       // the briefing belongs on the first panel
+  sendCard.hidden = i !== panels.length - 1;    // and Send only on the last
+  stepnav.querySelector('[data-nav="prev"]').disabled = i === 0;
+  stepnav.querySelector('[data-nav="next"]').hidden = i === panels.length - 1;
+  stepStatus.textContent = `Section ${i + 1} of ${panels.length}`;
+  tabs[i].scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (history.replaceState) history.replaceState(null, '', '#' + panels[i].id);
+}
+
+stepnav.addEventListener('click', e => {
+  const btn = e.target.closest('[data-nav]');
+  if (!btn) return;
+  showPanel(Math.min(Math.max(current + (btn.dataset.nav === 'next' ? 1 : -1), 0), panels.length - 1));
+});
+
+// Follow a #s3 link pasted into a tab that is already open.
+window.addEventListener('hashchange', () => {
+  const i = panels.findIndex(p => '#' + p.id === location.hash);
+  if (i > -1 && i !== current) showPanel(i);
+});
+
+/* ============================================================
+   Progress
+   ============================================================ */
+function sectionHasAnswer(panel) {
+  return $$('[data-id]', panel).some(el => (el.value || '').trim() !== '');
+}
+
+function progress() {
+  let done = 0;
+  panels.forEach((panel, i) => {
+    const has = sectionHasAnswer(panel);
+    if (has) done++;
+    tabs[i].classList.toggle('started', has);
+  });
+  $('#meterFill').style.width = Math.round((done / panels.length) * 100) + '%';
+  $('#meterLabel').textContent = `${done} of ${panels.length} sections`;
+}
+
+/* ============================================================
+   Priority filter
+   ============================================================ */
+function applyFilter() {
+  const only = $('#priorityOnly').checked;
+  let shown = 0;
+  SECTIONS.forEach(s => {
+    s.questions.forEach(q => {
+      const el = $(`[data-q="${q.id}"]`);
+      const hide = only && !q.star;
+      el.hidden = hide;
+      if (!hide) shown++;
+    });
+  });
+  // Tabs stay put even when a section has nothing to show, so the filter
+  // never strands someone on a panel that has silently vanished.
+  $('#showing').textContent = only
+    ? `Showing ${shown} of ${TOTAL} questions.`
+    : `All ${TOTAL} questions.`;
+}
+
+$('#priorityOnly').addEventListener('change', applyFilter);
+
+/* ============================================================
+   Ranking — warn on duplicates rather than locking numbers,
+   so swapping two ranks doesn't need a clear-out first.
+   ============================================================ */
+function checkRank(qid) {
+  const vals = $$(`[data-rank="${qid}"]`).map(x => x.value).filter(Boolean);
+  const dup = vals.length !== new Set(vals).size;
+  $('#' + qid + '-msg').textContent = dup
+    ? 'Two audiences share the same rank. Change one so each number is used once.'
+    : '';
+}
+
+/* ============================================================
+   Save & resume — the draft never leaves this browser
+   ============================================================ */
+const saveStatus   = $('#saveStatus');
+const resumeBanner = $('#resumeBanner');
+const resumeText   = $('#resumeText');
+const restoreInput = $('#restoreFile');
+const nameInput    = $('#who-name');
+const nameError    = $('#nameError');
+
+let storageWorks = false;
+let saveTimer = null;
+// Once sent, stop saving: the form is hidden but still full of answers, and
+// pagehide would otherwise write the draft straight back for the next person.
+let submitted = false;
+
+function storageAvailable() {
+  try {
+    localStorage.setItem('__ids_probe__', '1');
+    localStorage.removeItem('__ids_probe__');
+    return true;
+  } catch (e) { return false; }
+}
+
+function grow(el) {
+  if (el.tagName === 'TEXTAREA') { el.style.height = 'auto'; el.style.height = el.scrollHeight + 4 + 'px'; }
+}
+
+// An empty draft is not worth keeping: without this, merely reloading an
+// untouched page would save one and greet the next visitor with a resume banner.
+function hasContent(obj) {
+  return Object.keys(obj || {}).some(k => String(obj[k] || '').trim() !== '');
+}
+
+function collectDraft() {
+  return {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    respondent: (answers['who-name'] || '').trim(),
+    panel: current,
+    answers: answers
+  };
+}
+
+function applyDraft(draft) {
+  answers = Object.assign({}, draft.answers || {});
+  $$('[data-id]').forEach(el => {
+    const v = answers[el.dataset.id];
+    el.value = v === undefined ? '' : v;
+    grow(el);
+  });
+  SECTIONS.forEach(s => s.questions.forEach(q => { if (q.rank) checkRank(q.id); }));
+  progress();
+}
+
+function resetForm() {
+  answers = {};
+  $$('[data-id]').forEach(el => { el.value = ''; grow(el); });
+  SECTIONS.forEach(s => s.questions.forEach(q => { if (q.rank) checkRank(q.id); }));
+  nameInput.classList.remove('invalid');
+  nameError.hidden = true;
+  progress();
+}
+
+function timeAgo(iso) {
+  const secs = Math.round((Date.now() - new Date(iso)) / 1000);
+  if (secs < 90) return 'just now';
+  const mins = Math.round(secs / 60);
+  if (mins < 60) return mins + (mins === 1 ? ' minute ago' : ' minutes ago');
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return hrs + (hrs === 1 ? ' hour ago' : ' hours ago');
+  const days = Math.round(hrs / 24);
+  return days + (days === 1 ? ' day ago' : ' days ago');
+}
+
+function setStatus(state, when) {
+  saveStatus.className = 'savebar__status';
+  if (state === 'idle') {
+    saveStatus.textContent = 'Your answers save automatically as you type';
+  } else if (state === 'saving') {
+    saveStatus.textContent = 'Saving…';
+  } else if (state === 'saved') {
+    saveStatus.textContent = 'Saved in this browser · ' + (when || 'just now');
+    saveStatus.classList.add('ok');
+  } else if (state === 'unavailable') {
+    saveStatus.textContent = 'Auto-save isn’t available in this browser window — use “Save a copy” to keep your answers';
+    saveStatus.classList.add('warn');
+  }
+}
+
+function saveDraft() {
+  if (!storageWorks || submitted) return;
+  if (!hasContent(answers)) { clearDraft(); setStatus('idle'); return; }
+  try {
+    localStorage.setItem(CONFIG.storageKey, JSON.stringify(collectDraft()));
+    setStatus('saved');
+  } catch (e) {
+    storageWorks = false;
+    setStatus('unavailable');
+  }
+}
+
+function readDraft() {
+  try {
+    const raw = localStorage.getItem(CONFIG.storageKey);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    if (!d || typeof d.answers !== 'object' || !d.answers) return null;
+    return hasContent(d.answers) ? d : null;
+  } catch (e) { return null; }
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(CONFIG.storageKey); } catch (e) {}
+}
+
+function queueSave() {
+  if (!storageWorks || submitted) return;
+  setStatus('saving');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveDraft, 400);
+}
+
+function hideResume() { resumeBanner.hidden = true; }
+
+function onEdit(e) {
+  const el = e.target;
+  if (!el.dataset || !el.dataset.id) return;
+  answers[el.dataset.id] = el.value;
+  grow(el);
+  progress();
+  queueSave();
+  if (el.dataset.rank) checkRank(el.dataset.rank);
+  if (el === nameInput && el.value.trim()) { el.classList.remove('invalid'); nameError.hidden = true; }
+}
+
+document.addEventListener('input', onEdit);
+document.addEventListener('change', e => { if (e.target.tagName === 'SELECT') onEdit(e); });
+tabStrip.addEventListener('click', queueSave);
+stepnav.addEventListener('click', queueSave);
+window.addEventListener('pagehide', () => { clearTimeout(saveTimer); saveDraft(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') { clearTimeout(saveTimer); saveDraft(); }
+});
+
+/* ---------- Backup file ---------- */
+$('#btnSaveCopy').addEventListener('click', () => {
+  const draft = collectDraft();
+  const who = (draft.respondent || 'respondent').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  const blob = new Blob([JSON.stringify(draft, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'ids-discovery-' + who + '-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+$('#btnRestore').addEventListener('click', () => restoreInput.click());
+
+restoreInput.addEventListener('change', async () => {
+  const file = restoreInput.files[0];
+  if (!file) return;
+  let draft = null;
+  try { draft = JSON.parse(await file.text()); } catch (e) { draft = null; }
+
+  if (!draft || typeof draft.answers !== 'object' || !draft.answers) {
+    alert('That doesn’t look like a saved copy of this questionnaire. Please choose the .json file it downloaded.');
+    restoreInput.value = '';
+    return;
+  }
+  const hasAnswers = Object.keys(answers).some(k => (answers[k] || '').trim());
+  if (hasAnswers && !confirm('This will replace the answers currently on the form. Continue?')) {
+    restoreInput.value = '';
+    return;
+  }
+  applyDraft(draft);
+  showPanel(Math.min(draft.panel || 0, panels.length - 1));
+  saveDraft();
+  hideResume();
+  restoreInput.value = '';
+});
+
+/* ---------- Clearing ---------- */
+function startOver(message) {
+  if (!confirm(message)) return;
+  clearDraft();
+  resetForm();
+  hideResume();
+  showPanel(0);
+  setStatus(storageWorks ? 'idle' : 'unavailable');
+}
+
+$('#btnStartOver').addEventListener('click',
+  () => startOver('Clear every answer and start this questionnaire again? This cannot be undone.'));
+$('#resumeFresh').addEventListener('click',
+  () => startOver('Start a fresh response? The answers saved on this device will be cleared.'));
+$('#resumeDismiss').addEventListener('click', hideResume);
+
+/* ============================================================
+   Send
+   ============================================================ */
+function buildPayload() {
+  const pad = n => String(n).padStart(2, '0');
+  const out = {
+    _subject: 'IDS Discovery Questionnaire — response from ' + (answers['who-name'] || '').trim(),
+    'Submitted at': new Date().toISOString(),
+    'Name': (answers['who-name'] || '').trim(),
+    'Role at IDS': (answers['who-role'] || '').trim(),
+    'Email': (answers['who-email'] || '').trim()
+  };
+  const email = (answers['who-email'] || '').trim();
+  if (email) out._replyto = email;
+
+  SECTIONS.forEach(s => s.questions.forEach(q => {
+    const tag = (q.star ? '* ' : '') + pad(q.n) + '. ';
+    if (q.rank) {
+      q.rank.forEach((label, i) => {
+        out[tag + q.q + ' [' + label + ']'] = answers[`${q.id}-r${i}`] || '';
+      });
+    } else if (q.fields) {
+      q.fields.forEach(f => {
+        out[tag + q.q + ' [' + f.label + ']'] = (answers[f.id] || '').trim();
+      });
+    } else {
+      out[tag + q.q] = (answers[q.id] || '').trim();
+    }
+  }));
+  return out;
+}
+
+async function send() {
+  const btn = $('#sendBtn'), status = $('#sendStatus');
+
+  // A response with no name attached is no use - stop and send them back.
+  if (!(answers['who-name'] || '').trim()) {
+    nameInput.classList.add('invalid');
+    nameError.hidden = false;
+    showPanel(0);
+    nameInput.focus();
+    return;
+  }
+
+  btn.disabled = true;
+  status.className = 'status';
+  status.textContent = 'Sending…';
+
+  try {
+    const res = await fetch(CONFIG.endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(buildPayload())
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    submitted = true;
+    clearTimeout(saveTimer);
+    clearDraft();
+
+    const first = (answers['who-name'] || '').trim().split(' ')[0];
+    $('#thanksName').textContent = first ? ', ' + first : '';
+    $('#form').hidden = true;
+    $('.sticky').hidden = true;
+    $('#thanks').hidden = false;
+    $('#thanks-h').focus();
+    window.scrollTo(0, 0);
+  } catch (err) {
+    status.className = 'status error';
+    status.textContent = 'Your answers did not send. They are still saved in this browser. Check your connection and press Send again.';
+    btn.disabled = false;
+  }
+}
+
+$('#sendBtn').addEventListener('click', send);
+window.addEventListener('resize', () => $$('textarea').forEach(grow));
+
+/* ============================================================
+   Start up
+   ============================================================ */
+storageWorks = storageAvailable();
+setStatus(storageWorks ? 'idle' : 'unavailable');
+$('#saveNote').textContent = storageWorks
+  ? 'Your answers are kept in this browser as you type, so you can close the page and come back. Nothing is sent until you press Send at the bottom.'
+  : 'This browser is blocking saved answers, so please finish in one sitting or use “Save a copy”. Nothing is sent until you press Send at the bottom.';
+
+applyFilter();
+progress();
+
+const fromHash = panels.findIndex(p => '#' + p.id === location.hash);
+const saved = storageWorks ? readDraft() : null;
+
+if (saved) {
+  applyDraft(saved);
+  resumeText.textContent = saved.respondent
+    ? `Picking up where ${saved.respondent} left off — saved ${timeAgo(saved.savedAt)}.`
+    : `Your saved answers have been restored — saved ${timeAgo(saved.savedAt)}.`;
+  resumeBanner.hidden = false;
+  setStatus('saved', timeAgo(saved.savedAt));
+}
+
+// A #s3 link in the URL wins over the section they left off on.
+showPanel(
+  fromHash > -1 ? fromHash : (saved ? Math.min(saved.panel || 0, panels.length - 1) : 0),
+  { scroll: false }
+);
+</script>
+</body>
+</html>
