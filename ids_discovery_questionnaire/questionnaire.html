@@ -399,6 +399,21 @@ const SECTIONS = [
     { q: 'Can we get the current site’s analytics, 12 months if possible?', hint: 'Who runs the LinkedIn and marketing campaigns, and do you already tag campaign links?' },
     { q: 'How many leads (calls, forms, emails) does IDS get in a month today?', hint: 'What number would count as success three to six months after launch?' },
     { q: 'Which three or four competitors do you consider the closest, and who do customers compare IDS against?' }
+  ]},
+  { title: 'The three entity websites', tab: 'Entity sites', lead: 'IDS has separate sites for Core Analytics, First Choice Imaging CA and Community Imaging of Nevada. These questions help us avoid breaking anything customers or staff rely on.', questions: [
+    { star: true, q: 'What is each site used for today?', hint: 'For example marketing, ordering or requesting service, a login or portal, or staff resources.',
+      fields: [
+        { id: 'e29-core', label: 'Core Analytics', area: true },
+        { id: 'e29-fc', label: 'First Choice Imaging CA', area: true },
+        { id: 'e29-cin', label: 'Community Imaging of Nevada', area: true }
+      ] },
+    { q: 'Who uses these sites, and how often? Who would notice first if one changed?' },
+    { q: 'Does anything on them connect to other systems?', hint: 'Forms, logins, ordering, or email on the domain.' },
+    { star: true, q: 'If one of these sites disappeared tomorrow, what would break, and who would call you?' },
+    { q: 'Who owns the domain, the hosting and the content for each site, and who updates it today?' },
+    { star: true, q: 'Do you lean toward retiring these sites, merging them into the IDS site, or keeping them for a period?', hint: 'What makes you lean that way?' },
+    { q: 'Is there a date or event that fixes when this must happen?', hint: 'A contract, a campaign, or a merger milestone.' },
+    { q: 'What should customers of each entity see on day one after launch?' }
   ]}
 ];
 

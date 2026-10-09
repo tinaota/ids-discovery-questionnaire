@@ -1,7 +1,7 @@
 # IDS Website Redesign — Discovery Questionnaire
 
-Phase 1 discovery questionnaire for the IDS website redesign: 28 questions across five
-sections, 9 of them marked **Priority** because they block the design phase.
+Phase 1 discovery questionnaire for the IDS website redesign: 36 questions across six
+sections, 12 of them marked **Priority** because they block the design phase.
 
 ## Structure
 
